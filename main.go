@@ -34,9 +34,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	metricsServer "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-kubevirt/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-kubevirt/controllers"
@@ -106,17 +109,31 @@ func main() {
 		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", watchNamespace)
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 myscheme,
-		MetricsBindAddress:     metricsBindAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "controller-leader-election-capk",
-		SyncPeriod:             &syncPeriod,
-		HealthProbeBindAddress: healthAddr,
-		Port:                   webhookPort,
-		CertDir:                webhookCertDir,
-		Namespace:              watchNamespace,
+	webhookServer := webhook.NewServer(webhook.Options{
+		Port:    webhookPort,
+		CertDir: webhookCertDir,
 	})
+
+	managerOpts := ctrl.Options{
+		Scheme: myscheme,
+		Cache: cache.Options{
+			Scheme:                      myscheme,
+			SyncPeriod:                  &syncPeriod,
+			ReaderFailOnMissingInformer: false,
+			DefaultNamespaces: map[string]cache.Config{
+				watchNamespace: cache.Config{},
+			},
+		},
+		LeaderElection:   enableLeaderElection,
+		LeaderElectionID: "controller-leader-election-capk",
+		Metrics: metricsServer.Options{
+			BindAddress: metricsBindAddr,
+		},
+		HealthProbeBindAddress: healthAddr,
+		WebhookServer:          webhookServer,
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), managerOpts)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -173,7 +190,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIReader:    mgr.GetAPIReader(),
 		InfraCluster: infracluster.New(mgr.GetClient(), noCachedClient),
 		Log:          ctrl.Log.WithName("controllers").WithName("KubevirtCluster"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubevirtCluster")
 		os.Exit(1)
 	}

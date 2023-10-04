@@ -55,7 +55,8 @@ var _ = Describe("Template Validation", func() {
 		})
 
 		It("should not return error", func() {
-			Ω(tests.newTemplate.ValidateUpdate(tests.oldTemplate)).Should(Succeed())
+			warnings, err := tests.newTemplate.ValidateUpdate(tests.oldTemplate)
+			Expect(err, warnings).Should(Succeed())
 		})
 	})
 	Context("Template comparison with errors", func() {
@@ -86,8 +87,8 @@ var _ = Describe("Template Validation", func() {
 		})
 
 		It("should return error", func() {
-			err := tests.newTemplate.ValidateUpdate(tests.oldTemplate)
-			Expect(err).Should(MatchError(errors.New("KubevirtMachineTemplateSpec is immutable")))
+			warnings, err := tests.newTemplate.ValidateUpdate(tests.oldTemplate)
+			Expect(err, warnings).Should(MatchError(errors.New("KubevirtMachineTemplateSpec is immutable")))
 		})
 	})
 })

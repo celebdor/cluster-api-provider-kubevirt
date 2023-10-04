@@ -19,6 +19,8 @@ package kubevirt
 import (
 	gocontext "context"
 	"fmt"
+	"time"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,7 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-kubevirt/api/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-kubevirt/pkg/context"
@@ -172,7 +173,7 @@ func (m *Machine) Create(ctx gocontext.Context) error {
 		if virtualMachine.Spec.Template.ObjectMeta.Labels == nil {
 			virtualMachine.Spec.Template.ObjectMeta.Labels = map[string]string{}
 		}
-		virtualMachine.Labels[clusterv1.ClusterLabelName] = m.machineContext.Cluster.Name
+		virtualMachine.Labels[clusterv1.ClusterNameLabel] = m.machineContext.Cluster.Name
 
 		virtualMachine.Labels[infrav1.KubevirtMachineNameLabel] = m.machineContext.KubevirtMachine.Name
 		virtualMachine.Labels[infrav1.KubevirtMachineNamespaceLabel] = m.machineContext.KubevirtMachine.Namespace

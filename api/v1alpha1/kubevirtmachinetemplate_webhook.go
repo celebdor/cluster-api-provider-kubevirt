@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (m *KubevirtMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -36,20 +37,20 @@ func (m *KubevirtMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) erro
 var _ webhook.Validator = &KubevirtMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (m *KubevirtMachineTemplate) ValidateCreate() error {
-	return nil
+func (m *KubevirtMachineTemplate) ValidateCreate() (warnings admission.Warnings, err error) {
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (m *KubevirtMachineTemplate) ValidateUpdate(old runtime.Object) error {
+func (m *KubevirtMachineTemplate) ValidateUpdate(old runtime.Object) (warnings admission.Warnings, err error) {
 	oldCRS := old.(*KubevirtMachineTemplate)
 	if !reflect.DeepEqual(m.Spec, oldCRS.Spec) {
-		return errors.New("KubevirtMachineTemplateSpec is immutable")
+		return nil, errors.New("KubevirtMachineTemplateSpec is immutable")
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (m *KubevirtMachineTemplate) ValidateDelete() error {
-	return nil
+func (m *KubevirtMachineTemplate) ValidateDelete() (warnings admission.Warnings, err error) {
+	return nil, nil
 }

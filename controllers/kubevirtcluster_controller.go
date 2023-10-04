@@ -264,7 +264,7 @@ func (r *KubevirtClusterReconciler) reconcileDelete(ctx *context.ClusterContext,
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *KubevirtClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *KubevirtClusterReconciler) SetupWithManager(ctx gocontext.Context, mgr ctrl.Manager) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.KubevirtCluster{}).
 		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
@@ -274,8 +274,8 @@ func (r *KubevirtClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	return c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("KubevirtCluster"))),
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("KubevirtCluster"), mgr.GetClient(), &infrav1.KubevirtCluster{})),
 		predicates.ClusterUnpaused(r.Log),
 	)
 }

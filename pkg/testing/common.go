@@ -59,9 +59,9 @@ func NewKubevirtClusterWithNamespacedLB(clusterName, kubevirtName string, lbName
 				},
 			},
 		},
-		Spec: infrav1.KubevirtClusterSpec {
+		Spec: infrav1.KubevirtClusterSpec{
 			ControlPlaneServiceTemplate: infrav1.ControlPlaneServiceTemplate{
-				ObjectMeta: metav1.ObjectMeta {
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: lbNamespace,
 				},
 			},
@@ -104,7 +104,7 @@ func NewMachine(clusterName, machineName string, kubevirtMachine *infrav1.Kubevi
 		ObjectMeta: metav1.ObjectMeta{
 			Name: machineName,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: clusterv1.MachineSpec{

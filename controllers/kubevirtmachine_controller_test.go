@@ -81,6 +81,7 @@ var (
 	fakeClient                client.Client
 	kubevirtMachineReconciler KubevirtMachineReconciler
 	fakeWorkloadClusterClient client.Client
+	ctx                       = ctrl.SetupSignalHandler()
 )
 
 var _ = Describe("KubevirtClusterToKubevirtMachines", func() {
@@ -119,7 +120,7 @@ var _ = Describe("KubevirtClusterToKubevirtMachines", func() {
 	AfterEach(func() {})
 
 	It("should generate requests for all Kubevirt machines in the cluster", func() {
-		out := kubevirtMachineReconciler.KubevirtClusterToKubevirtMachines(kubevirtCluster)
+		out := kubevirtMachineReconciler.KubevirtClusterToKubevirtMachines(ctx, kubevirtCluster)
 		Expect(out).To(HaveLen(2))
 		machineNames := make([]string, len(out))
 		for i := range out {
@@ -130,7 +131,7 @@ var _ = Describe("KubevirtClusterToKubevirtMachines", func() {
 
 	It("should panic when kubevirt cluster is not specified.", func() {
 		if err := recover(); err != nil {
-			Expect(kubevirtMachineReconciler.KubevirtClusterToKubevirtMachines(cluster)).To(Panic())
+			Expect(kubevirtMachineReconciler.KubevirtClusterToKubevirtMachines(ctx, cluster)).To(Panic())
 		}
 	})
 })
@@ -806,7 +807,7 @@ var _ = Describe("reconcile a kubevirt machine", func() {
 		Context("reconcileNormal", func() {
 			It("adds a failed VMProvisionedCondition with reason WaitingForControlPlaneAvailableReason when the control plane is not yet available", func() {
 				machine.Spec.Bootstrap.DataSecretName = nil
-				delete(machine.ObjectMeta.Labels, clusterv1.MachineControlPlaneLabelName)
+				delete(machine.ObjectMeta.Labels, clusterv1.MachineControlPlaneNameLabel)
 				conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, "nonce", clusterv1.ConditionSeverityInfo, "")
 
 				objects := []client.Object{
@@ -831,7 +832,7 @@ var _ = Describe("reconcile a kubevirt machine", func() {
 			})
 			It("adds a failed VMProvisionedCondition with reason WaitingForBootstrapDataReason when bootstrap data is not yet available", func() {
 				machine.Spec.Bootstrap.DataSecretName = nil
-				delete(machine.ObjectMeta.Labels, clusterv1.MachineControlPlaneLabelName)
+				delete(machine.ObjectMeta.Labels, clusterv1.MachineControlPlaneNameLabel)
 				conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 
 				objects := []client.Object{

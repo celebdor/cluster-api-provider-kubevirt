@@ -114,7 +114,7 @@ func (r *KubevirtMachineReconciler) Reconcile(goctx gocontext.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.ClusterLabelName))
+		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.ClusterNameLabel))
 		return ctrl.Result{}, nil
 	}
 
@@ -485,11 +485,11 @@ func (r *KubevirtMachineReconciler) SetupWithManager(goctx gocontext.Context, mg
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(goctx))).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("KubevirtMachine"))),
 		).
 		Watches(
-			&source.Kind{Type: &infrav1.KubevirtCluster{}},
+			&infrav1.KubevirtCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.KubevirtClusterToKubevirtMachines),
 		).
 		Build(r)
@@ -497,7 +497,7 @@ func (r *KubevirtMachineReconciler) SetupWithManager(goctx gocontext.Context, mg
 		return err
 	}
 	return c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(clusterToKubevirtMachines),
 		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(goctx)),
 	)
@@ -505,7 +505,7 @@ func (r *KubevirtMachineReconciler) SetupWithManager(goctx gocontext.Context, mg
 
 // KubevirtClusterToKubevirtMachines is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of KubevirtMachines.
-func (r *KubevirtMachineReconciler) KubevirtClusterToKubevirtMachines(o client.Object) []ctrl.Request {
+func (r *KubevirtMachineReconciler) KubevirtClusterToKubevirtMachines(ctx gocontext.Context, o client.Object) []ctrl.Request {
 	var result []ctrl.Request
 	c, ok := o.(*infrav1.KubevirtCluster)
 	if !ok {
@@ -520,7 +520,7 @@ func (r *KubevirtMachineReconciler) KubevirtClusterToKubevirtMachines(o client.O
 		return result
 	}
 
-	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(gocontext.TODO(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		return nil
